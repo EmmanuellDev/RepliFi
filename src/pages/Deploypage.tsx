@@ -1,102 +1,139 @@
-  const DeployPage: React.FC<{
-  walletAddress: string;
-  onDeploy: (contractName: string, txHash: string, address: string) => void;
-}> = ({ walletAddress, onDeploy }) => {
-  const [isDeploying, setIsDeploying] = useState(false);
-  const [deployResult, setDeployResult] = useState<{txHash: string, address: string} | null>(null);
+import React from 'react';
+import { Zap, ExternalLink, Copy, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 
-  const networkDetails = {
-    rpc: 'https://api.calibration.node.glif.io/rpc/v1',
-    chainId: '314159',
-    currency: 'tFIL',
-    explorer: 'https://calibration.filscan.io'
-  };
+interface CompilationResult {
+  success: boolean;
+  bytecode?: string;
+  abi?: any[];
+  errors?: string[];
+  warnings?: string[];
+}
 
-  const handleDeploy = async () => {
-    if (!walletAddress) {
-      alert('Please connect your wallet first');
-      return;
-    }
-
-    setIsDeploying(true);
-    
-    // Mock deployment process
-    setTimeout(() => {
-      const mockResult = {
-        txHash: '0x' + Math.random().toString(16).slice(2, 66),
-        address: '0x' + Math.random().toString(16).slice(2, 42)
-      };
-      
-      setDeployResult(mockResult);
-      onDeploy('HelloWorld', mockResult.txHash, mockResult.address);
-      setIsDeploying(false);
-    }, 3000);
+const DeployPage: React.FC<{ 
+  wallet: string | null; 
+  lastCompiledContract: CompilationResult | null;
+  onDeploy: () => void;
+  isDeploying: boolean;
+  deployResult: any;
+}> = ({ wallet, lastCompiledContract, onDeploy, isDeploying, deployResult }) => {
+  const networkInfo = {
+    name: "Filecoin Calibration Testnet",
+    rpc: "https://api.calibration.node.glif.io/rpc/v1",
+    chainId: "314159",
+    currency: "tFIL",
+    explorer: "https://calibration.filscan.io"
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-6">
-      <div className="max-w-4xl mx-auto">
-        <h2 className="text-2xl font-bold mb-6">Deploy to Filecoin Calibration Testnet</h2>
-        
-        <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 mb-6">
-          <h3 className="text-lg font-semibold mb-4">Network Details</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-2xl font-bold text-white mb-4">Deploy Contract</h2>
+        <p className="text-gray-400">Deploy your compiled smart contract to Filecoin Calibration testnet</p>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-8">
+        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+          <h3 className="text-lg font-semibold text-white mb-4">Network Information</h3>
+          <div className="space-y-3">
+            <div>
+              <span className="text-gray-400">Network:</span>
+              <span className="text-white ml-2">{networkInfo.name}</span>
+            </div>
             <div>
               <span className="text-gray-400">RPC URL:</span>
-              <div className="text-blue-400 font-mono">{networkDetails.rpc}</div>
+              <span className="text-white ml-2 font-mono text-sm">{networkInfo.rpc}</span>
             </div>
             <div>
               <span className="text-gray-400">Chain ID:</span>
-              <div className="text-blue-400 font-mono">{networkDetails.chainId}</div>
+              <span className="text-white ml-2">{networkInfo.chainId}</span>
             </div>
             <div>
               <span className="text-gray-400">Currency:</span>
-              <div className="text-blue-400 font-mono">{networkDetails.currency}</div>
+              <span className="text-white ml-2">{networkInfo.currency}</span>
             </div>
             <div>
               <span className="text-gray-400">Explorer:</span>
-              <div className="text-blue-400 font-mono">{networkDetails.explorer}</div>
+              <a href={networkInfo.explorer} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 ml-2 inline-flex items-center">
+                {networkInfo.explorer}
+                <ExternalLink className="h-4 w-4 ml-1" />
+              </a>
             </div>
           </div>
         </div>
 
-        <div className="text-center mb-6">
-          <button
-            onClick={handleDeploy}
-            disabled={isDeploying || !walletAddress}
-            className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white px-8 py-3 rounded-lg text-lg font-medium inline-flex items-center"
-          >
-            <Upload className="h-5 w-5 mr-2" />
-            {isDeploying ? 'Deploying...' : 'Deploy Contract'}
-          </button>
+        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+          <h3 className="text-lg font-semibold text-white mb-4">Deployment Status</h3>
+          {!wallet ? (
+            <div className="text-yellow-400">
+              <AlertCircle className="h-5 w-5 inline mr-2" />
+              Please connect your wallet first
+            </div>
+          ) : !lastCompiledContract?.success ? (
+            <div className="text-yellow-400">
+              <AlertCircle className="h-5 w-5 inline mr-2" />
+              Please compile your contract first
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="text-green-400">
+                <CheckCircle className="h-5 w-5 inline mr-2" />
+                Ready to deploy
+              </div>
+              <button
+                onClick={onDeploy}
+                disabled={isDeploying}
+                className="w-full flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white py-3 rounded-md transition-colors"
+              >
+                {isDeploying ? <Loader className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                <span>{isDeploying ? 'Deploying...' : 'Deploy Contract'}</span>
+              </button>
+            </div>
+          )}
         </div>
+      </div>
 
-        {deployResult && (
-          <div className="bg-green-900 border border-green-700 rounded-lg p-6">
-            <h3 className="text-lg font-semibold mb-4 text-green-400">Deployment Successful!</h3>
-            <div className="space-y-2 text-sm">
-              <div>
-                <span className="text-gray-400">Transaction Hash:</span>
-                <div className="text-green-400 font-mono break-all">{deployResult.txHash}</div>
+      {deployResult && (
+        <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+          <h3 className="text-lg font-semibold text-white mb-4">Deployment Result</h3>
+          {deployResult.success ? (
+            <div className="space-y-3">
+              <div className="text-green-400">
+                <CheckCircle className="h-5 w-5 inline mr-2" />
+                Contract deployed successfully!
               </div>
               <div>
                 <span className="text-gray-400">Contract Address:</span>
-                <div className="text-green-400 font-mono break-all">{deployResult.address}</div>
+                <div className="flex items-center space-x-2 mt-1">
+                  <span className="text-white font-mono bg-gray-900 px-3 py-1 rounded">{deployResult.address}</span>
+                  <button className="text-blue-400 hover:text-blue-300">
+                    <Copy className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
-              <div className="mt-4">
-                <a
-                  href={`${networkDetails.explorer}/tx/${deployResult.txHash}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 inline-flex items-center"
-                >
-                  View on Filscan <ExternalLink className="h-4 w-4 ml-1" />
-                </a>
+              <div>
+                <span className="text-gray-400">Transaction Hash:</span>
+                <div className="flex items-center space-x-2 mt-1">
+                  <span className="text-white font-mono bg-gray-900 px-3 py-1 rounded">{deployResult.txHash}</span>
+                  <a 
+                    href={`${networkInfo.explorer}/tx/${deployResult.txHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:text-blue-300"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          ) : (
+            <div className="text-red-400">
+              <AlertCircle className="h-5 w-5 inline mr-2" />
+              Deployment failed: {deployResult.error}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
+export default DeployPage;
